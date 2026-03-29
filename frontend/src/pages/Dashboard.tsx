@@ -17,6 +17,7 @@ import {
   FiEye,
 } from 'react-icons/fi';
 import { downloadExcel } from '../services/excelExport';
+import ApplicationHeader from '../components/ApplicationHeader';
 
 interface Modal {
   type: 'borrower' | 'loan' | 'addLoan' | 'addBorrower' | null;
@@ -170,7 +171,7 @@ const renderQuarterlyTrend = (
     <div className="dashboard-trend-card" data-testid="dashboard-trend-card">
       <div className="dashboard-trend-header">
         <div>
-          <h3 data-testid="dashboard-trend-title">24-Month Response Trend</h3>
+          <h3 data-testid="dashboard-trend-title">24-Month Borrower Response Trend</h3>
           <p data-testid="dashboard-trend-description">Avg days from request to 1071 submission by quarter</p>
         </div>
         <div className="dashboard-trend-stat" data-testid="dashboard-trend-latest">
@@ -770,6 +771,8 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="container dashboard-page">
+      <ApplicationHeader />
+
       <div className="header dashboard-header">
         <div className="dashboard-title-block">
           <div>
