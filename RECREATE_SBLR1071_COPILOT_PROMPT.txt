@@ -1,0 +1,575 @@
+TITLE: Recreate the SBLR1071 CFPB 1071 System Exactly on a New Laptop
+
+ROLE AND OUTPUT REQUIREMENTS
+You are GitHub Copilot acting as a senior full-stack implementation agent. Recreate this project exactly, including architecture, dependencies, backend APIs, frontend behavior, database schema, email flow, and test scripts.
+
+Work in small verifiable steps, run commands, fix issues, and keep going until everything works.
+Do not stop at code generation only. You must:
+1) install dependencies,
+2) configure environment,
+3) build and run frontend and backend,
+4) initialize database schema and sample data,
+5) validate critical API and UI flows,
+6) provide final run instructions.
+
+Do not skip any file listed in this prompt.
+
+============================================================
+1) BUSINESS CONTEXT AND FUNCTIONAL OBJECTIVE
+============================================================
+Build a CFPB 1071 data collection system for small business lending operations.
+
+Primary business workflow:
+1. Relationship Manager (RM) uses Dashboard to manage borrowers and loans.
+2. RM clicks Collect 1071 for a specific loan.
+3. System creates a unique request GUID and stores request metadata.
+4. System sends email to borrower with secure link: /form1071/{guid}
+5. Borrower opens link and sees prefilled loan context + borrower identity fields.
+6. Borrower submits CFPB 1071 data fields.
+7. Submission is stored; request status is updated to submitted.
+8. Dashboard shows collected status and allows view of submitted data.
+9. Resend creates a new request row and GUID while old rows are preserved as inactive history.
+10. Old inactive links should not accept new submissions.
+
+Compliance/business behavior details:
+- 1071 requests are tracked per loan.
+- Only one active request per loan at a time.
+- Historical requests are retained for auditability.
+- Borrower-facing timestamps are Arizona/Phoenix timezone in UI and email text formatting.
+
+============================================================
+2) TARGET PROJECT STRUCTURE
+============================================================
+Create exactly this structure:
+
+SBLR1071/
+  API_EXAMPLES.md
+  ARCHITECTURE.md
+  docker-compose.yml
+  PROJECT_OVERVIEW.md
+  project_prompt.txt
+  QUICKSTART.md
+  README.md
+  SETUP_STATUS.md
+  setup.bat
+  setup.sh
+  test_api.py
+  test_e2e_all_operations.py
+  test_emails.py
+  test_email_gmail.py
+  test_production_email.py
+  test_simple.py
+  test_ui_workflow.py
+  TEST_FEATURES.sh
+  remove_constraint.py
+
+  database/
+    schema.sql
+    seed.sql
+
+  backend/
+    .env.example
+    requirements.txt
+    main.py
+    email_service.py
+    seed_test_data.py
+    test_form_load_fresh.py
+    test_full_flow_with_submission.py
+    test_guid_history_flow.py
+    test_resend_flow.py
+
+  frontend/
+    index.html
+    package.json
+    tsconfig.json
+    tsconfig.node.json
+    vite.config.ts
+    src/
+      App.tsx
+      App.css
+      main.tsx
+      components/
+        ErrorBoundary.tsx
+      pages/
+        Dashboard.tsx
+        Form1071.tsx
+      services/
+        api.ts
+        excelExport.ts
+      types/
+        index.ts
+      utils/
+        dateUtils.ts
+
+============================================================
+3) TECH STACK AND REQUIRED DEPENDENCIES
+============================================================
+Backend Python (from requirements.txt):
+- fastapi==0.115.4
+- uvicorn==0.32.1
+- sqlalchemy==2.0.35
+- psycopg[binary]==3.3.3
+- pydantic>=2.0.0
+- python-multipart==0.0.6
+- python-dotenv==1.0.0
+
+Frontend dependencies (frontend/package.json):
+- react ^18.2.0
+- react-dom ^18.2.0
+- react-router-dom ^6.20.0
+- axios ^1.6.2
+- dayjs ^1.11.10
+- react-icons ^4.12.0
+- xlsx ^0.18.5
+
+Frontend dev dependencies:
+- typescript ^5.2.2
+- vite ^8.0.3
+- @vitejs/plugin-react ^4.2.0
+- @types/react ^18.2.37
+- @types/react-dom ^18.2.15
+
+Additional test script dependency used in root Python tests:
+- requests
+
+============================================================
+4) ENVIRONMENT AND INSTALLATION (NEW LAPTOP)
+============================================================
+Use these baseline assumptions:
+- OS: Windows (PowerShell). Also include Linux/macOS equivalents where simple.
+- Node 18+ recommended.
+- Python 3.10+ recommended.
+- PostgreSQL 15+ recommended.
+
+4.1 Clone and enter project
+- git clone <repo-url>
+- cd SBLR1071
+
+4.2 Database setup option A (local PostgreSQL)
+- createdb sblr1071
+- psql -d sblr1071 -f database/schema.sql
+- psql -d sblr1071 -f database/seed.sql
+
+4.3 Database setup option B (Docker)
+- docker compose up -d
+- Connection string becomes: postgresql://sblr_user:sblr_password@localhost:5432/sblr1071
+
+4.4 Backend setup
+- cd backend
+- python -m venv .venv
+- Windows: .\.venv\Scripts\Activate.ps1
+- Linux/macOS: source .venv/bin/activate
+- pip install -r requirements.txt
+- pip install requests
+- Create backend/.env from backend/.env.example
+
+Required backend env variables:
+- DATABASE_URL=postgresql+psycopg://<user>:<password>@localhost:5432/sblr1071
+- SMTP_SERVER=smtp.gmail.com (or smtp.example.com for mock)
+- SMTP_PORT=587
+- SENDER_EMAIL=<sender email>
+- SENDER_PASSWORD=<app password>
+- SENDER_NAME=Shashi System 1071 Compliance
+- FRONTEND_URL=http://localhost:3000
+
+4.5 Frontend setup
+- cd ../frontend
+- npm install
+
+4.6 Start apps
+- Backend: from backend folder run python main.py
+- Frontend: from frontend folder run npm run dev
+
+Expected ports:
+- Backend: 8000
+- Frontend: 3000 (strict)
+
+Smoke checks:
+- Backend health: GET http://localhost:8000/health
+- Swagger docs: http://localhost:8000/docs
+- Frontend dashboard: http://localhost:3000
+
+============================================================
+5) DATABASE MODEL (POSTGRES)
+============================================================
+Create and use these tables and relationships:
+
+5.1 borrowers
+- id (varchar36 PK)
+- email
+- first_name
+- last_name
+- created_at
+
+5.2 loans
+- id (varchar36 PK)
+- borrower_id (FK to borrowers.id)
+- loan_amount
+- loan_date
+- property_address
+- property_city
+- property_state
+- property_zip
+- loan_purpose
+- interest_rate
+- created_at
+
+5.3 form_1071_requests
+- id (varchar36 PK)
+- guid (unique)
+- loan_id (FK to loans.id)
+- borrower_id (FK to borrowers.id)
+- status (pending | submitted | inactive)
+- request_sent_at
+- submitted_at
+- created_at
+
+5.4 form_1071_submissions
+- id (varchar36 PK)
+- request_id (FK to form_1071_requests.id)
+- applicant_name
+- applicant_email
+- co_applicant_name
+- co_applicant_email
+- annual_income
+- liquid_assets
+- employment_status
+- credit_score_range
+- military_status
+- veteran_status
+- demographic_race
+- demographic_ethnicity
+- demographic_sex
+- demographic_age_range
+- created_at
+- updated_at
+
+Notes:
+- App logic supports multiple borrowers with same email.
+- If DB still has a unique constraint on borrowers.email from older schema, include migration/removal step (remove_constraint.py style behavior).
+
+============================================================
+6) BACKEND API CONTRACT (FASTAPI)
+============================================================
+Implement these endpoints in backend/main.py with SQLAlchemy models and Pydantic schemas.
+
+System:
+- GET /health
+
+Borrowers:
+- GET /borrowers
+- GET /borrowers/{borrower_id}
+- POST /borrowers
+- PUT /borrowers/{borrower_id}
+- DELETE /borrowers/{borrower_id}
+
+Loans:
+- GET /loans?borrower_id=<id>
+- GET /loans/{loan_id}
+- POST /loans
+- PUT /loans/{loan_id}
+- DELETE /loans/{loan_id}
+
+1071 Requests:
+- POST /1071-requests
+  behavior:
+  - validate loan exists
+  - find borrower
+  - deactivate prior non-inactive requests for same loan
+  - generate globally unique GUID
+  - create new pending request row
+  - send email containing FRONTEND_URL/form1071/{guid}
+
+- GET /1071-requests/{guid}
+
+- PUT /1071-requests/{request_id}
+  behavior:
+  - resend by creating NEW row with NEW GUID
+  - deactivate prior rows for same loan
+  - send fresh email
+
+1071 Submissions:
+- POST /1071-submissions
+  behavior:
+  - validate request exists
+  - reject if request.status == inactive
+  - reject duplicate submission for same request_id
+  - create submission row
+  - update request status to submitted and set submitted_at
+
+- GET /1071-submissions/{request_id}
+
+Submission history:
+- GET /loans/{loan_id}/1071-submissions-history
+  behavior:
+  - return all submission snapshots for loan by joining submissions and requests
+  - ordered by submitted_at desc then created_at desc
+
+Backend utility behavior:
+- borrower_display_name helper for personalized greeting.
+- generate_unique_guid with collision check.
+- deactivate_requests_for_loan helper.
+- CORS enabled for development.
+
+============================================================
+7) EMAIL SERVICE BEHAVIOR (backend/email_service.py)
+============================================================
+Implement plain text SMTP email with:
+- Subject: Your CFPB 1071 Compliance Form - Shashi System
+- Greeting: Dear <borrower name>
+- Includes unique form URL
+- Includes Arizona timestamp in message body
+- Uses SMTP EHLO -> STARTTLS -> EHLO -> LOGIN -> SEND
+- Adds deliverability headers:
+  - Message-ID
+  - Date
+  - Reply-To
+  - List-Unsubscribe
+  - List-Unsubscribe-Post
+
+Mock behavior:
+- If SMTP_SERVER == smtp.example.com, print email details to console instead of sending.
+
+Timezone handling:
+- Use America/Phoenix (MST) for display timestamps in email content.
+
+============================================================
+8) FRONTEND ROUTES, PAGES, AND USER FLOW
+============================================================
+8.1 Routing
+- / -> Dashboard
+- /form1071/:guid -> Borrower form and submitted/read-only view
+- unknown routes redirect to /
+
+8.2 Dashboard page behavior (pages/Dashboard.tsx)
+Must include:
+- Borrower table with:
+  - name
+  - email
+  - request summary counts (pending vs collected)
+  - action icons (expand/collapse, edit borrower, add loan, delete borrower)
+- Borrower row drill-down to loan table
+- Loan table with:
+  - loan core fields
+  - collection status badge
+  - status timestamp text
+  - actions:
+    - Collect 1071 (when none)
+    - Resend icon (pending and collected cases)
+    - View link when collected (opens /form1071/{guid}?source=dashboard)
+    - edit loan
+    - delete loan
+- Add New Borrower button centered at bottom
+- Modal forms:
+  - BorrowerModal for add/edit
+  - LoanModal for add/edit
+- Export Data button using xlsx service (2 sheets: Borrowers and Loans)
+- Success/error banners
+
+8.3 Form 1071 page behavior (pages/Form1071.tsx)
+Must include:
+- Load flow:
+  1) get request by GUID
+  2) reject inactive links with explicit message
+  3) load loan by request.loan_id
+  4) load borrower by request.borrower_id
+  5) prefill applicant_name and applicant_email from borrower (read-only)
+- Required validation:
+  - applicant_name
+  - applicant_email (format)
+  - annual_income numeric
+  - employment_status
+  - credit_score_range
+- Submission behavior:
+  - submit POST /1071-submissions
+  - stay on page after submit
+  - show success message
+  - switch to read-only presentation
+- Submitted/read-only behavior:
+  - title: 1071 Record for <Borrower Name>
+  - if multiple prior submissions exist for loan, show submission history selector (left panel)
+  - show selected submission details in right panel
+  - source-aware button:
+    - if source=dashboard -> Return to Dashboard
+    - otherwise -> Close
+- Non-submitted title remains: CFPB 1071 Data Collection
+
+8.4 Timezone display on frontend
+- Centralize date formatting in utils/dateUtils.ts using dayjs utc + timezone plugin.
+- Display operational timestamps in America/Phoenix and append MST text where relevant.
+- Keep loan_date as date-only formatting without timezone shift.
+
+8.5 Global error handling
+- Wrap App in ErrorBoundary component in main.tsx.
+- Render fallback page with reload action for runtime crashes.
+
+============================================================
+9) FRONTEND API CLIENT AND TYPES
+============================================================
+Implement frontend/src/services/api.ts with axios baseURL /api and methods:
+- borrowerAPI: getAll/getById/create/update/delete
+- loanAPI: getByBorrowerId/getById/create/update/delete
+- form1071API:
+  - submitRequest
+  - getByGuid
+  - resendRequest
+  - submitForm
+  - getSubmission (return null on 404)
+  - getLoanSubmissionsHistory
+
+Implement frontend/src/types/index.ts with:
+- Borrower
+- LoanData
+- Form1071Request with status union pending|submitted|inactive
+- Form1071Data
+- Form1071SubmissionHistoryItem
+- LoanWithRequest
+
+============================================================
+10) STYLING AND RESPONSIVENESS
+============================================================
+Implement App.css with:
+- dashboard layout responsiveness
+- table wrappers with horizontal overflow
+- action chip and icon styles
+- readonly-grid responsive breakpoints:
+  - 4 columns on wide screens
+  - 3 columns around 1280
+  - 2 columns around 992
+  - 1 column on mobile
+- modal styles and animation
+- loading/success/error visual states
+
+Maintain current blue-toned branding and Shashi System labels used in form header/email.
+
+============================================================
+11) FILE-BY-FILE SOURCE OF TRUTH BEHAVIOR
+============================================================
+Ensure these key files match behavior of current project:
+- backend/main.py
+- backend/email_service.py
+- backend/requirements.txt
+- backend/.env.example
+- database/schema.sql
+- database/seed.sql
+- frontend/package.json
+- frontend/vite.config.ts
+- frontend/src/App.tsx
+- frontend/src/main.tsx
+- frontend/src/pages/Dashboard.tsx
+- frontend/src/pages/Form1071.tsx
+- frontend/src/services/api.ts
+- frontend/src/services/excelExport.ts
+- frontend/src/types/index.ts
+- frontend/src/utils/dateUtils.ts
+- frontend/src/components/ErrorBoundary.tsx
+- frontend/src/App.css
+
+============================================================
+12) TEST MODULES TO RECREATE AND RUN
+============================================================
+Root-level tests/scripts:
+- test_simple.py
+- test_api.py
+- test_e2e_all_operations.py
+- test_ui_workflow.py
+- test_emails.py
+- test_email_gmail.py
+- test_production_email.py
+- TEST_FEATURES.sh (feature checklist style output)
+- remove_constraint.py (legacy DB constraint fixer)
+
+Backend scripts:
+- backend/seed_test_data.py
+- backend/test_form_load_fresh.py
+- backend/test_resend_flow.py
+- backend/test_guid_history_flow.py
+- backend/test_full_flow_with_submission.py
+
+Run sequence after app start:
+1) python backend/seed_test_data.py
+2) python test_simple.py
+3) python test_api.py
+4) python test_e2e_all_operations.py
+5) python test_ui_workflow.py
+6) python backend/test_form_load_fresh.py
+7) python backend/test_resend_flow.py
+8) python backend/test_guid_history_flow.py
+9) python backend/test_full_flow_with_submission.py
+10) python test_emails.py
+
+Notes:
+- test_email_gmail.py and test_production_email.py send real emails; run only when SMTP creds are valid and approved.
+
+============================================================
+13) KNOWN OPERATIONAL GOTCHAS (IMPORTANT)
+============================================================
+1. Run frontend commands from frontend folder only.
+   - npm run dev/build at repo root fails if package scripts are absent.
+2. Run backend with activated virtual environment and correct DATABASE_URL.
+3. Vite dev server is configured strict to port 3000; if port occupied, free it first.
+4. Frontend email links must use FRONTEND_URL from backend env, not hardcoded localhost in code.
+5. Old GUID links are expected to exist but should be marked inactive and blocked for submission.
+6. window.close may be blocked by browser if tab was not script-opened; keep this as known behavior.
+
+============================================================
+14) VALIDATION CHECKLIST (MUST PASS)
+============================================================
+A. API and app startup:
+- backend health returns {"status":"ok"}
+- frontend loads Dashboard with borrower rows
+
+B. Dashboard actions:
+- add/edit/delete borrower works
+- add/edit/delete loan works
+- pending vs collected counts update correctly
+
+C. Collection and resend:
+- Collect 1071 creates request row and sends email/log
+- Resend creates NEW request row and NEW GUID
+- prior loan requests become inactive
+
+D. Borrower form:
+- link loads correct request by guid
+- applicant fields prefilled from borrower and read-only
+- required validation enforced
+- submit stores data and updates request status to submitted
+
+E. Read-only and history:
+- submitted page title shows borrower name
+- history list appears when multiple submissions exist
+- dashboard-origin view shows Return to Dashboard button
+- email-origin view shows Close button
+
+F. Data export:
+- Export button downloads xlsx with Borrowers and Loans sheets
+
+============================================================
+15) FINAL DELIVERABLE FORMAT EXPECTATION FROM COPILOT
+============================================================
+At end, provide:
+1) exact commands run,
+2) list of files created/updated,
+3) test results summary,
+4) any remaining manual steps (SMTP credential entry),
+5) quick start commands to run both services on reboot.
+
+============================================================
+16) QUICK START COMMANDS (WINDOWS) TO INCLUDE IN FINAL NOTES
+============================================================
+Backend:
+- cd backend
+- .\.venv\Scripts\Activate.ps1
+- python main.py
+
+Frontend:
+- cd frontend
+- npm run dev
+
+Optional build check:
+- cd frontend
+- npm run build
+
+============================================================
+END OF MASTER REBUILD PROMPT
+============================================================

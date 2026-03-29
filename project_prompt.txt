@@ -1,0 +1,95 @@
+I need to create a 4 tier project:
+
+Frontend using REACT UI; Backend using FAST API python; Database using SQLAlchemy for Postgres DB;  Testing using Playwright frameworks
+
+Below are the rules for each layer. 
+
+Frontend:
+	setup react ui framework in this folder
+	Must be web responsive app
+	Must work on all devices like laptops, desktops, ipads, mobile phones
+	Must be compatible with all major browsers like edge, chrome, safari, Opera etc.. 
+	Must be stylish, trendy, use simple monochrome icons
+	Must use western alliance bank style guides from this site
+	Must use western alliance bank fonts, colors, logos
+	Should be able to switch between light and dark theme colors. with admin selection on top right side of the screen.
+	Should always present who logged in along with their image and what role they logged in as on top right side of the screen. 
+
+Backend:
+	setup python FAST API framework in this folder
+	Must contain one api for each object
+	Must contain api operations in this object for every type of operations like add, update, delete, read, lookup, bulk add, bulk update, bulk delete
+	Must be able to do fuzzy match lookup
+	Each api object should have a table in postgres
+	Must create a good swagger UI page to run all operations of these apis
+
+Database:
+	Setup SQLAlchemy framework for postgress db in this folder. 
+	All db scripts including create and alter should in this folder
+	Should contain admin, process, relation, products, bi, audit schemas
+	admin schema should contain the reference codes, drop down mappings and all sorts of configurations
+	process schema should have long running choreography process records, their stages, details etc..
+	relation schema should have client relation, their sub relations (facilities), commitments of each facilities their relations with products, relation contacts, contacts singing authority etc.. 
+	Products schema should contain tables for loan, deposits, treasury services and their child tables
+	
+
+Testing:
+	Setup Playwright framework in this folder that can test end to end all operations all the way from react UI to fast api backend to postgress db layer and also SMTP email test cases
+	Write one test file for each end to end test case across 3 layers.
+	When run must create a UI dashboard of test results  
+	Should be able to re run the test cases from this dashboard
+	
+
+
+Business context: I have to create this 3 tier application where RM's initiate requests to collect 1071 data from loan borrowers as per CFPB 1071 recent regulation and publish a report of this data for CFPB upload.
+
+Create below 2 UI pages in front end and ensure all API and DB layers are accounted for every operations of front end. 
+
+
+1) Dashboard screen:  with the list of borrowers along with their email id, number of loans under them, pending vs completed 1071 requests and action icons to edit the borrower, add loan under them. 
+Each borrower should have drill down of loans that they have. 
+For each loan record, there should be 10 main data points of typical small business loan. Along with all required 1071 data fields. A 1071 data collection status field and a "Collect 1071" button.
+Each loan should also have edit and delete icons 
+
+If the 1071 data is already collected, the 1071 data collection status should display collected timestamp and a hyperlink to filled 1071 form. else should display pending request sent at timestamp when the button was last submitted. 
+
+Also a re-request icon if RM needs to collect one more time. 
+
+2) 1017 form :  with the required fields as per CFPB 1071 data collection requirements. Editable and form can be submitted if it was not submitted for this request before. 
+
+
+Here is the business process. 
+
+Lender (RM) will first log into "Dashboard Screen", click on the "collect 1071" button for the borrowers who did not submit the 1071 data. 
+On clicking the button, the screen should send an email to borrower email id and register the request information with unique GUID in postgres db through backend python fast api.
+Borrower should get an email with a link to the "1071 form" with this unique GUID
+When borrower click this link in email, they should be directed to prefilled 1071 form with basic loan data, but empty 1071 fields that should be collected by borrower
+borrower should be able to fill in all required 1071 fields and submit the form.
+Upon submitting the form, the data should be saved in postgres db through python fast api
+This information should reflect in Dashboard screen upon refresh. 
+
+
+
+Use these python libs to begin with. But ensure the all 4 layers are installed and application brought up successfully. Ensure all the frameworks and library versions are compatible and test the application end to end. 
+
+Ask me if you need me to give user ids and passwords along the way, but continue to ensure the dependencies are all taken care. 
+
+fastapi==0.115.4
+uvicorn==0.32.1
+sqlalchemy==2.0.35
+psycopg[binary]==3.3.3
+pydantic>=2.0.0
+python-multipart==0.0.6
+python-dotenv==1.0.0
+
+
+
+
+Make these modifications to "Dashboard screen".
+
+1) add how many requests pending vs collected for each borrower row
+2) Give edit icon for each borrower row and should be able to edit the borrower details on a popup form
+3) Give edit icon for each loan and should be able to edit loan details on a popup form
+4) Give add icon at borrower level to add new loan records
+5) give add button at the bottom center of the page to add new borrowers
+6) for all records give a delete icon to delete either borrower or loan. 

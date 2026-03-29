@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build outputs
+frontend/dist/
+frontend/.vite/
+backend/.pytest_cache/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+.coverage
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+testing/node_modules/
+testing/.env
+.pytest_cache/
+
+# OS
+Thumbs.db
+.DS_Store

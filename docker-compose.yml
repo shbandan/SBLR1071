@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: sblr_user
+      POSTGRES_PASSWORD: sblr_password
+      POSTGRES_DB: sblr1071_v2
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sblr_user -d sblr1071_v2"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+
+# Usage:
+# docker-compose up -d
+# 
+# This will:
+# 1. Start PostgreSQL container
+# 2. Create database and tables automatically
+# 3. Load sample data
+# 
+# Database connection: postgresql://sblr_user:sblr_password@localhost:5432/sblr1071_v2
+#
+# To stop: docker-compose down
+# To remove everything: docker-compose down -v

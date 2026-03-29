@@ -1,0 +1,24 @@
+{
+  "name": "sblr1071-e2e-tests",
+  "version": "1.0.0",
+  "description": "End-to-end tests for SBLR 1071 application across all 3 layers",
+  "scripts": {
+    "test": "node scripts/run-with-dashboard.mjs",
+    "test:ui": "playwright test --ui --grep-invert @email",
+    "test:debug": "playwright test --debug --grep-invert @email",
+    "test:headed": "playwright test --headed --grep-invert @email",
+    "test:frontend": "playwright test e2e/frontend --grep-invert @email",
+    "test:api": "playwright test e2e/api --grep-invert @email",
+    "test:database": "playwright test e2e/database --grep-invert @email",
+    "test:emails": "node scripts/run-email-tests.mjs",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:critical": "playwright test --grep @critical",
+    "report": "playwright show-report",
+    "report:dashboard": "node scripts/generate-dashboard.mjs"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.48.0",
+    "pg": "^8.11.0"
+  },
+  "devDependencies": {}
+}
