@@ -246,6 +246,7 @@ const Dashboard: React.FC = () => {
   const [responseTrend, setResponseTrend] = useState<DashboardResponseTrend>({ points: [] });
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [responseTrendLoading, setResponseTrendLoading] = useState(true);
+  const [graphsRefreshing, setGraphsRefreshing] = useState(false);
   const [graphTooltip, setGraphTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
   const [loanColumnWidths, setLoanColumnWidths] = useState<number[]>(() => {
     if (typeof window === 'undefined') {
@@ -478,6 +479,16 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     loadDashboardResponseTrend();
   }, [loadDashboardResponseTrend]);
+
+  const handleRefreshGraphs = useCallback(async () => {
+    setGraphsRefreshing(true);
+    setGraphTooltip(null);
+    try {
+      await Promise.all([loadDashboardSummary(), loadDashboardResponseTrend()]);
+    } finally {
+      setGraphsRefreshing(false);
+    }
+  }, [loadDashboardSummary, loadDashboardResponseTrend]);
 
   useEffect(() => {
     const target = loadMoreRef.current;
@@ -777,7 +788,19 @@ const Dashboard: React.FC = () => {
         <div className="dashboard-title-block">
           <div>
             <h1>CFPB 1071 Dashboard</h1>
-            <p>Manage borrower data collection requests</p>
+            <div className="dashboard-subtitle-row">
+              <p>Manage borrower data collection requests</p>
+              <button
+                type="button"
+                onClick={handleRefreshGraphs}
+                className={`icon-btn dashboard-graphs-refresh-btn${graphsRefreshing ? ' is-refreshing' : ''}`}
+                title="Refresh dashboard graphs"
+                aria-label="Refresh dashboard graphs"
+                disabled={graphsRefreshing}
+              >
+                <FiRefreshCw size={10} />
+              </button>
+            </div>
           </div>
           <div className="dashboard-meter-row">
             {renderDonutMeter(
