@@ -3,7 +3,7 @@ import { apiClient } from '../utils/api-client';
 import { apiEndpoints } from '../fixtures/test-data';
 import { dbClient, dbQueries } from '../utils/db-client';
 
-const HARDCODED_TEST_EMAIL = 's.bandanatham@gmail.com';
+const HARDCODED_TEST_EMAIL = 'playwright-mock@example.com';
 
 function uniqueEmail(prefix: string): string {
   return HARDCODED_TEST_EMAIL;
@@ -158,3 +158,4 @@ test.describe('Form 1071 Requests API Layer Tests', () => {
     expect(getResponse.data).toHaveProperty('guid', guid);
   });
 });
+

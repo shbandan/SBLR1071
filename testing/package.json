@@ -11,8 +11,8 @@
     "test:api": "playwright test e2e/api --grep-invert @email",
     "test:database": "playwright test e2e/database --grep-invert @email",
     "test:emails": "node scripts/run-email-tests.mjs",
-    "test:smoke": "playwright test --grep @smoke",
-    "test:critical": "playwright test --grep @critical",
+    "test:smoke": "playwright test --grep @smoke --grep-invert @email",
+    "test:critical": "playwright test --grep @critical --grep-invert @email",
     "report": "playwright show-report",
     "report:dashboard": "node scripts/generate-dashboard.mjs"
   },

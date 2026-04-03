@@ -98,7 +98,7 @@ test.describe('Frontend - Dashboard Graphs', () => {
     await expect(page.getByTestId('dashboard-loans-meter-center')).toContainText('56%');
     await expect(page.getByTestId('dashboard-loans-meter-center')).toContainText('10/18');
 
-    await expect(page.getByTestId('dashboard-trend-title')).toHaveText('24-Month Response Trend');
+    await expect(page.getByTestId('dashboard-trend-title')).toHaveText('24-Month Borrower Response Trend');
     await expect(page.getByTestId('dashboard-trend-description')).toHaveText(
       'Avg days from request to 1071 submission by quarter'
     );

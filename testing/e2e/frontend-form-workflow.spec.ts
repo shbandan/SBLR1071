@@ -2,14 +2,14 @@ import { test, expect } from '@playwright/test';
 import { apiClient } from '../utils/api-client';
 import { apiEndpoints } from '../fixtures/test-data';
 
-const HARDCODED_TEST_EMAIL = 's.bandanatham@gmail.com';
+const HARDCODED_TEST_EMAIL = 'playwright-mock@example.com';
 
 function uniqueEmail(prefix: string): string {
   return HARDCODED_TEST_EMAIL;
 }
 
 async function waitForFormReady(page: import('@playwright/test').Page): Promise<void> {
-  await page.getByText('Loading form…').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+  await page.getByText(/Loading form/).waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
 }
 
 test.describe('Frontend - Form 1071 E2E Workflow', () => {
@@ -181,3 +181,4 @@ test.describe('Frontend - Form 1071 Validation', () => {
     }
   });
 });
+

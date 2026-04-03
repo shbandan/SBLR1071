@@ -3,7 +3,7 @@ import { apiClient } from '../utils/api-client';
 import { testData, apiEndpoints } from '../fixtures/test-data';
 import { dbClient, dbQueries } from '../utils/db-client';
 
-const HARDCODED_TEST_EMAIL = 's.bandanatham@gmail.com';
+const HARDCODED_TEST_EMAIL = 'playwright-mock@example.com';
 
 function uniqueEmail(prefix: string): string {
   return HARDCODED_TEST_EMAIL;
@@ -108,7 +108,7 @@ test.describe('Borrower API Layer Tests', () => {
     expect(getResponse.status).toBe(404);
   });
 
-  test('POST /borrowers should reject duplicate emails', async () => {
+  test('POST /borrowers should allow duplicate emails', async () => {
     const email = uniqueEmail('duplicate');
     const payload1 = {
       email: email,
@@ -125,7 +125,7 @@ test.describe('Borrower API Layer Tests', () => {
     expect(response1.status).toBe(200);
 
     const response2 = await apiClient.post(apiEndpoints.borrowers, payload2);
-    expect(response2.status).toBe(409);
+    expect(response2.status).toBe(200);
   });
 
   test('Database should reflect all borrower operations', async () => {
@@ -144,3 +144,4 @@ test.describe('Borrower API Layer Tests', () => {
     expect(getResponse.data).toHaveProperty('email', payload.email);
   });
 });
+

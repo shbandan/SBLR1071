@@ -3,7 +3,7 @@ import { apiClient } from '../utils/api-client';
 import { testData, apiEndpoints } from '../fixtures/test-data';
 import { dbClient, dbQueries } from '../utils/db-client';
 
-const HARDCODED_TEST_EMAIL = 's.bandanatham@gmail.com';
+const HARDCODED_TEST_EMAIL = 'playwright-mock@example.com';
 
 test.describe('Loan API Layer Tests', () => {
   let borrowerId: string;
@@ -221,3 +221,4 @@ test.describe('Loan API Layer Tests', () => {
     }
   });
 });
+

@@ -15,6 +15,7 @@ const run = spawnSync(process.execPath, [
   stdio: 'inherit',
   env: {
     ...process.env,
+    // Email suite is explicit opt-in and may use real SMTP settings.
     ENABLE_REAL_EMAIL_TESTS: '1',
     SMTP_SERVER: process.env.SMTP_SERVER || 'smtp.gmail.com',
   },

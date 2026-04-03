@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { apiClient } from '../../utils/api-client';
 import { apiEndpoints } from '../../fixtures/test-data';
 
-const HARDCODED_TEST_EMAIL = 's.bandanatham@gmail.com';
+const HARDCODED_TEST_EMAIL = process.env.EMAIL_TEST_RECIPIENT || 'playwright-email-test@example.com';
 
 function uniqueEmail(prefix: string): string {
   return HARDCODED_TEST_EMAIL;

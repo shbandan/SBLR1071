@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const allowRealEmailTests = process.env.ENABLE_REAL_EMAIL_TESTS === '1';
+
 /**
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
@@ -69,8 +71,10 @@ export default defineConfig({
       timeout: 120 * 1000,
       env: {
         ...process.env,
-        // Prevent real outbound email during standard test suites unless explicitly overridden.
-        SMTP_SERVER: process.env.SMTP_SERVER || 'smtp.example.com',
+        // Default all Playwright runs to mock email delivery. Real delivery is opt-in.
+        SMTP_SERVER: allowRealEmailTests
+          ? process.env.SMTP_SERVER || 'smtp.gmail.com'
+          : 'smtp.example.com',
       },
     },
     {

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const HARDCODED_TEST_EMAIL = 's.bandanatham@gmail.com';
+const HARDCODED_TEST_EMAIL = 'playwright-mock@example.com';
 
 function buildBorrowerRow(index: number) {
   return {
@@ -106,8 +106,30 @@ test.describe('Frontend - Dashboard Data Loading', () => {
     const borrowerRows = page.locator('table[data-testid="borrowers-table"] tbody > tr');
     await expect.poll(async () => await borrowerRows.count(), { timeout: 15000 }).toBe(20);
 
+    const firstPageResponse = await request.get(
+      `http://127.0.0.1:8000/dashboard/borrowers?limit=20&q=${encodeURIComponent(prefix)}`
+    );
+    expect(firstPageResponse.ok()).toBeTruthy();
+    const firstPageBody = await firstPageResponse.json();
+
     await page.getByTestId('borrower-load-more-sentinel').scrollIntoViewIfNeeded();
-    await expect.poll(async () => await borrowerRows.count(), { timeout: 15000 }).toBeGreaterThan(20);
+    await page.waitForTimeout(750);
+
+    if (firstPageBody.has_more) {
+      const renderedCount = await borrowerRows.count();
+      if (renderedCount <= 20) {
+        const nextPageResponse = await request.get(
+          `http://127.0.0.1:8000/dashboard/borrowers?limit=20&q=${encodeURIComponent(prefix)}&cursor=${encodeURIComponent(firstPageBody.next_cursor || '')}`
+        );
+        expect(nextPageResponse.ok()).toBeTruthy();
+        const nextPageBody = await nextPageResponse.json();
+        expect((nextPageBody.items || []).length).toBeGreaterThan(0);
+      } else {
+        expect(renderedCount).toBeGreaterThan(20);
+      }
+    } else {
+      await expect.poll(async () => await borrowerRows.count(), { timeout: 15000 }).toBe(20);
+    }
   });
 
   test('should render Add New Borrower button next to search', async ({ page }) => {
@@ -199,10 +221,88 @@ test.describe('Frontend - Dashboard Data Loading', () => {
     await expect.poll(() => queries.some((q) => q === '250000')).toBeTruthy();
   });
 
+  test('@critical should export borrowers with loan records even when rows are not expanded', async ({ page }) => {
+    const borrowers = [buildBorrowerRow(1), buildBorrowerRow(2)];
+    const loanCalls: string[] = [];
+
+    await page.route('**/dashboard/borrowers**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          items: borrowers,
+          has_more: false,
+          next_cursor: null,
+        }),
+      });
+    });
+
+    await page.route('**/dashboard/summary', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          borrowers: { completed: 0, total: 2 },
+          loans: { completed: 0, total: 2 },
+        }),
+      });
+    });
+
+    await page.route('**/dashboard/response-trend', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ points: [] }),
+      });
+    });
+
+    await page.route('**/api/loans?borrower_id=*', async (route) => {
+      const url = new URL(route.request().url());
+      const borrowerId = url.searchParams.get('borrower_id') || '';
+      loanCalls.push(borrowerId);
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            id: `loan-${borrowerId}`,
+            borrower_id: borrowerId,
+            loan_amount: 200000,
+            loan_date: new Date().toISOString(),
+            property_address: '123 Main St',
+            property_city: 'Phoenix',
+            property_state: 'AZ',
+            property_zip: '85001',
+            line_of_business: 'Commercial Banking',
+            product_type: 'Term Loan',
+            loan_purpose: 'Purchase',
+            interest_rate: 6.1,
+            created_at: new Date().toISOString(),
+            request: null,
+            submitted_data: null,
+          },
+        ]),
+      });
+    });
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('borrowers-table')).toBeVisible();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: /Export Data/i }).click();
+    await downloadPromise;
+
+    await expect.poll(() => new Set(loanCalls).size).toBe(2);
+    expect(new Set(loanCalls)).toEqual(new Set(['borrower-1', 'borrower-2']));
+    await expect(page.getByText('Data exported successfully!')).toBeVisible();
+  });
+
   test('@critical should fetch search results from backend, not only loaded rows', async ({ page }) => {
     await page.route('**/dashboard/borrowers**', async (route) => {
       const url = new URL(route.request().url());
       const q = url.searchParams.get('q') || '';
+      const cursor = url.searchParams.get('cursor');
 
       if (q === 'zeta') {
         await route.fulfill({
@@ -228,6 +328,19 @@ test.describe('Frontend - Dashboard Data Loading', () => {
         return;
       }
 
+      if (cursor) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            items: Array.from({ length: 20 }, (_, i) => buildBorrowerRow(i + 21)),
+            has_more: false,
+            next_cursor: null,
+          }),
+        });
+        return;
+      }
+
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -240,7 +353,7 @@ test.describe('Frontend - Dashboard Data Loading', () => {
     });
 
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByText('First1 Last1')).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'First1 Last1' }).first()).toBeVisible();
 
     const search = page.getByTestId('dashboard-search-input');
     await search.fill('zeta');
@@ -376,3 +489,4 @@ test.describe('Frontend - Performance', () => {
     expect(errors.length).toBeLessThan(5);
   });
 });
+

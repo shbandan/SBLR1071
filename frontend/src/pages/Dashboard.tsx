@@ -655,10 +655,34 @@ const Dashboard: React.FC = () => {
     setModal({ type: 'addBorrower' });
   };
 
-  const handleDownloadExcel = () => {
+  const handleDownloadExcel = async () => {
     try {
+      setError('');
+      setSuccessMessage('');
+
+      const missingLoanBorrowers = borrowers.filter((borrower) => !loansMap[borrower.id]);
+      const fetchedLoanEntries = await Promise.all(
+        missingLoanBorrowers.map(async (borrower) => {
+          const data = await loanAPI.getByBorrowerId(borrower.id);
+          return [borrower.id, data] as const;
+        })
+      );
+
+      const fetchedLoansMap = Object.fromEntries(fetchedLoanEntries);
+      const exportLoansMap = {
+        ...loansMap,
+        ...fetchedLoansMap,
+      };
+
+      if (fetchedLoanEntries.length > 0) {
+        setLoansMap((prev) => ({
+          ...prev,
+          ...fetchedLoansMap,
+        }));
+      }
+
       const filename = `CFPB1071_Data_${nowAZ('YYYY-MM-DD_HHmmss')}.xlsx`;
-      downloadExcel(borrowers, loansMap, filename);
+      downloadExcel(borrowers, exportLoansMap, filename);
       setSuccessMessage('Data exported successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
@@ -808,7 +832,7 @@ const Dashboard: React.FC = () => {
               'Borrowers',
               '1071 submitted borrowers',
               summary.borrowers,
-              '#0f9f94',
+              '#a78bfa',
               summaryLoading,
               handleGraphTooltipMove,
               handleGraphTooltipLeave
@@ -818,7 +842,7 @@ const Dashboard: React.FC = () => {
               'Loans',
               '1071 submitted loans',
               summary.loans,
-              '#2563eb',
+              '#8b5cf6',
               summaryLoading,
               handleGraphTooltipMove,
               handleGraphTooltipLeave
