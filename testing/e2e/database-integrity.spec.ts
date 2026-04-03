@@ -17,7 +17,7 @@ test.describe('Database Layer Tests - Data Integrity', () => {
   test('@critical should verify all required tables exist', async () => {
     const tables = await dbClient.query(`
       SELECT table_name FROM information_schema.tables 
-      WHERE table_schema = 'public'
+      WHERE table_schema = 'dbo'
       ORDER BY table_name
     `);
 
@@ -103,7 +103,7 @@ test.describe('Database Layer Tests - Data Integrity', () => {
     const constraints = await dbClient.query(`
       SELECT table_name, constraint_type FROM information_schema.table_constraints 
       WHERE constraint_type = 'PRIMARY KEY' 
-      AND table_schema = 'public'
+      AND table_schema = 'dbo'
       ORDER BY table_name
     `);
 
@@ -116,9 +116,10 @@ test.describe('Database Layer Tests - Data Integrity', () => {
 
   test('should verify foreign key relationships', async () => {
     const constraints = await dbClient.query(`
-      SELECT constraint_name, table_name, column_name 
-      FROM information_schema.constraint_column_usage 
-      WHERE constraint_name LIKE 'fk_%' OR constraint_name LIKE '%fkey'
+      SELECT constraint_name, table_name 
+      FROM information_schema.table_constraints 
+      WHERE constraint_type = 'FOREIGN KEY'
+      AND table_schema = 'dbo'
       ORDER BY table_name
     `);
 
@@ -127,10 +128,12 @@ test.describe('Database Layer Tests - Data Integrity', () => {
 
   test('should verify indexes exist for performance', async () => {
     const indexes = await dbClient.query(`
-      SELECT indexname FROM pg_indexes 
-      WHERE schemaname = 'public'
-      AND tablename IN ('borrowers', 'loans', 'form_1071_requests', 'form_1071_submissions')
-      ORDER BY indexname
+      SELECT i.name AS indexname
+      FROM sys.indexes i
+      INNER JOIN sys.tables t ON i.object_id = t.object_id
+      WHERE t.name IN ('borrowers', 'loans', 'form_1071_requests', 'form_1071_submissions')
+      AND i.is_hypothetical = 0
+      ORDER BY i.name
     `);
 
     const indexNames = indexes.map((i: any) => i.indexname);
@@ -170,7 +173,7 @@ test.describe('Database Layer Tests - Data Integrity', () => {
 
   test('should verify timestamps are set on creation', async () => {
     const result = await dbClient.queryOne<{ count: number }>(
-      'SELECT COUNT(*) as count FROM relations.borrowers WHERE created_at IS NOT NULL'
+      'SELECT COUNT(*) as count FROM borrowers WHERE created_at IS NOT NULL'
     );
     expect(Number(result?.count || 0)).toBeGreaterThanOrEqual(0);
   });

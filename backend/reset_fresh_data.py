@@ -1,8 +1,7 @@
 from datetime import datetime, timedelta
 
-from sqlalchemy import text
-
 from main import (
+    Base,
     BorrowerModel,
     Form1071RequestModel,
     Form1071SubmissionModel,
@@ -144,23 +143,12 @@ def add_request(
 def reset_and_seed() -> None:
     db = SessionLocal()
     try:
-        print("Removing unique constraint from email column...")
-        try:
-            with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE borrowers DROP CONSTRAINT IF EXISTS borrowers_email_key"))
-            print("Unique constraint removed")
-        except Exception as exc:
-            print(f"Note: Could not drop constraint (may not exist): {exc}")
-
-        print("Truncating all existing records...")
+        print("Recreating database schema from ORM models...")
         with engine.begin() as conn:
-            conn.execute(
-                text(
-                    "TRUNCATE TABLE form_1071_submissions, form_1071_requests, loans, borrowers RESTART IDENTITY CASCADE"
-                )
-            )
+            Base.metadata.drop_all(bind=conn)
+            Base.metadata.create_all(bind=conn)
         db.commit()
-        print("Truncated all records successfully")
+        print("Schema recreated successfully")
 
         borrowers: list[BorrowerModel] = []
         loans: list[LoanModel] = []

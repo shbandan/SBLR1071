@@ -947,20 +947,20 @@ body.column-resize-active {
 }
 
 body.theme-dark {
-  --primary-color: #2db56b;
-  --secondary-color: #103123;
-  --text-color: #e7f8ef;
-  --border-color: #2c6a4a;
-  --success-color: #55d88f;
-  --error-color: #fca5a5;
-  background: linear-gradient(135deg, #071a12 0%, #0b261a 55%, #113624 100%);
+  --primary-color: #3a8bff;
+  --secondary-color: #111827;
+  --text-color: #f1f5f9;
+  --border-color: #334155;
+  --success-color: #34d399;
+  --error-color: #fb7185;
+  background: linear-gradient(135deg, #0b0f19 0%, #111827 55%, #1e293b 100%);
   color: var(--text-color);
 }
 
 body.theme-dark .header {
-  background: linear-gradient(135deg, #113121 0%, #17472f 100%);
-  border-bottom-color: #2f7d54;
-  box-shadow: 0 10px 28px rgba(2, 24, 16, 0.45);
+  background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
+  border-bottom-color: #334155;
+  box-shadow: 0 10px 28px rgba(11, 15, 25, 0.45);
 }
 
 body.theme-dark .header p,
@@ -968,24 +968,24 @@ body.theme-dark .dashboard-meter-copy p,
 body.theme-dark .dashboard-trend-header p,
 body.theme-dark .dashboard-trend-stat span,
 body.theme-dark .dashboard-trend-x-label {
-  color: #b8e4cd;
+  color: #94a3b8;
 }
 
 body.theme-dark .application-header {
-  border-color: rgba(64, 171, 111, 0.4);
-  background: linear-gradient(135deg, rgba(12, 41, 28, 0.98), rgba(20, 67, 45, 0.98));
+  border-color: rgba(90, 160, 255, 0.4);
+  background: linear-gradient(135deg, rgba(17, 24, 39, 0.98), rgba(30, 41, 59, 0.98));
 }
 
 body.theme-dark .application-header-item {
-  background: rgba(31, 84, 57, 0.45);
-  border-color: rgba(86, 194, 135, 0.35);
+  background: rgba(30, 41, 59, 0.45);
+  border-color: rgba(122, 182, 255, 0.35);
 }
 
 body.theme-dark .dashboard-meter-card,
 body.theme-dark .dashboard-trend-card {
-  background: rgba(18, 52, 36, 0.92);
-  border-color: rgba(84, 194, 134, 0.28);
-  box-shadow: 0 10px 24px rgba(2, 24, 16, 0.36);
+  background: rgba(17, 24, 39, 0.92);
+  border-color: rgba(58, 139, 255, 0.28);
+  box-shadow: 0 10px 24px rgba(11, 15, 25, 0.36);
 }
 
 body.theme-dark .dashboard-meter-center strong,
@@ -993,52 +993,52 @@ body.theme-dark .dashboard-meter-copy h3,
 body.theme-dark .dashboard-trend-header h3,
 body.theme-dark .dashboard-trend-stat strong,
 body.theme-dark .dashboard-title-block h1 {
-  color: #edfff5;
+  color: #f1f5f9;
 }
 
 body.theme-dark .dashboard-subtitle-row p {
-  color: #c7ecd8;
+  color: #94a3b8;
 }
 
 body.theme-dark .dashboard-graphs-refresh-btn,
 body.theme-dark .dashboard-graphs-refresh-btn:hover {
   border: none !important;
-  background: #1f8c53 !important;
-  color: #f0fff7 !important;
+  background: #3a8bff !important;
+  color: #f1f5f9 !important;
   box-shadow: none;
 }
 
 body.theme-dark .dashboard-meter-center span {
-  color: #bde6d0;
+  color: #94a3b8;
 }
 
 body.theme-dark .dashboard-meter-track {
-  stroke: rgba(110, 195, 145, 0.42);
+  stroke: rgba(100, 116, 139, 0.42);
 }
 
 body.theme-dark .dashboard-trend-area {
-  fill: rgba(45, 181, 107, 0.18);
+  fill: rgba(58, 139, 255, 0.18);
 }
 
 body.theme-dark .dashboard-trend-line,
 body.theme-dark .dashboard-trend-point {
-  stroke: #56d18d;
+  stroke: #7bb6ff;
 }
 
 body.theme-dark .dashboard-trend-point {
-  fill: #0f3322;
+  fill: #0a1a33;
 }
 
 body.theme-dark .dashboard-table-wrap,
 body.theme-dark .loans-table-wrap {
-  scrollbar-color: #56b985 #0f2f20;
+  scrollbar-color: #5aa0ff #0a1a33;
 }
 
 body.theme-dark .dashboard-table-wrap table,
 body.theme-dark .loan-record-table,
 body.theme-dark table {
-  background-color: #0f2f20;
-  color: #eafcf2;
+  background-color: #111827;
+  color: #f1f5f9;
 }
 
 body.theme-dark .dashboard-table-wrap table thead,
@@ -1046,82 +1046,82 @@ body.theme-dark .dashboard-table-wrap table th,
 body.theme-dark .loan-record-table thead,
 body.theme-dark .loan-record-table th,
 body.theme-dark th {
-  background: linear-gradient(135deg, #1a5a3a 0%, #26784e 100%);
-  color: #effff6;
-  border-bottom-color: #2f915f;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  color: #f1f5f9;
+  border-bottom-color: #334155;
 }
 
 body.theme-dark .dashboard-table-wrap table td,
 body.theme-dark .loan-record-table td,
 body.theme-dark td {
-  border-bottom-color: #24563d;
+  border-bottom-color: #334155;
 }
 
 body.theme-dark .dashboard-table-wrap table tbody tr:hover,
 body.theme-dark .loan-record-table tbody tr:hover,
 body.theme-dark tr:hover {
-  background-color: #184630;
+  background-color: #1e293b;
 }
 
 body.theme-dark .summary-chip {
-  background: #1a5c3c;
-  border-color: #2f915f;
-  color: #e6fbea;
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
 }
 
 body.theme-dark .graph-hover-tooltip {
-  border-color: rgba(86, 194, 135, 0.42);
-  background: rgba(10, 40, 27, 0.95);
+  border-color: rgba(122, 182, 255, 0.42);
+  background: rgba(10, 26, 51, 0.95);
 }
 
 body.theme-dark input,
 body.theme-dark select,
 body.theme-dark textarea {
-  background: #123825;
-  color: #e8faef;
-  border-color: #2d754f;
+  background: #0a1a33;
+  color: #f1f5f9;
+  border-color: #334155;
 }
 
 body.theme-dark input:focus,
 body.theme-dark select:focus,
 body.theme-dark textarea:focus {
-  border-color: #57d089;
-  box-shadow: 0 0 0 3px rgba(87, 208, 137, 0.24);
+  border-color: #5aa0ff;
+  box-shadow: 0 0 0 3px rgba(90, 160, 255, 0.24);
 }
 
 body.theme-dark .btn-secondary {
-  background-color: #17442d;
-  color: #e8faef;
-  border-color: #2d754f;
+  background-color: #1e293b;
+  color: #f1f5f9;
+  border-color: #334155;
 }
 
 body.theme-dark .btn-secondary:hover {
-  background-color: #1f5a3b;
-  border-color: #399866;
+  background-color: #334155;
+  border-color: #5aa0ff;
 }
 
 body.theme-dark .icon-btn {
-  background-color: #1f5a3b !important;
-  border-color: #369365;
-  color: #e8faef !important;
+  background-color: #1e293b !important;
+  border-color: #334155;
+  color: #f1f5f9 !important;
 }
 
 body.theme-dark .icon-btn:hover {
-  background-color: #28734a !important;
-  border-color: #56b985;
-  color: #f2fff7 !important;
+  background-color: #334155 !important;
+  border-color: #5aa0ff;
+  color: #f1f5f9 !important;
 }
 
 body.theme-dark .dashboard-export-btn {
-  background-color: #216946;
-  color: #effff6;
-  border-color: #369365;
+  background-color: #38bdf8;
+  color: #0b0f19;
+  border-color: #5aa0ff;
 }
 
 body.theme-dark .dashboard-export-btn:hover {
-  background-color: #2b8055;
-  color: #f5fff9;
-  border-color: #58b987;
+  background-color: #5aa0ff;
+  color: #0b0f19;
+  border-color: #7bb6ff;
 }
 
 .dashboard-actions {

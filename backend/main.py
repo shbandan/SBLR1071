@@ -15,6 +15,7 @@ from sqlalchemy import (
     case,
     cast,
     text as sql_text,
+    inspect,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
@@ -27,45 +28,91 @@ import os
 import base64
 from email_service import send_collection_email
 
+try:
+    import pyodbc as _odbc_module
+except ModuleNotFoundError:
+    import pypyodbc as _odbc_module
+
 # Database Setup
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+psycopg://sband:admin@localhost:5432/sblr1071_v2"
+    "mssql+pyodbc://@localhost:1433/sblr1071_v2?driver=ODBC+Driver+18+for+SQL+Server&trusted_connection=yes&TrustServerCertificate=yes"
 )
 
 # Public URL of the frontend app — change this in production to your real hostname.
 # e.g. "https://1071.wahbank.com" or the machine's LAN IP for local network access.
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
-engine = create_engine(DATABASE_URL, echo=False, future=True)
+if DATABASE_URL.startswith("mssql+pyodbc"):
+    engine = create_engine(
+        DATABASE_URL,
+        echo=False,
+        future=True,
+        pool_pre_ping=True,
+        module=_odbc_module,
+    )
+else:
+    engine = create_engine(DATABASE_URL, echo=False, future=True, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+
+def _column_exists(conn, table_name: str, column_name: str) -> bool:
+    inspector = inspect(conn)
+    return any(col.get("name") == column_name for col in inspector.get_columns(table_name))
+
+
+def _index_exists(conn, table_name: str, index_name: str) -> bool:
+    inspector = inspect(conn)
+    return any(idx.get("name") == index_name for idx in inspector.get_indexes(table_name))
+
+
+def _ensure_loan_dimension_columns(conn) -> None:
+    dialect = engine.dialect.name
+
+    if not _column_exists(conn, "loans", "line_of_business"):
+        if dialect == "mssql":
+            conn.execute(sql_text("ALTER TABLE loans ADD line_of_business VARCHAR(100) NULL"))
+        else:
+            conn.execute(sql_text("ALTER TABLE loans ADD COLUMN line_of_business VARCHAR(100)"))
+
+    if not _column_exists(conn, "loans", "product_type"):
+        if dialect == "mssql":
+            conn.execute(sql_text("ALTER TABLE loans ADD product_type VARCHAR(100) NULL"))
+        else:
+            conn.execute(sql_text("ALTER TABLE loans ADD COLUMN product_type VARCHAR(100)"))
+
+
+def _ensure_index(conn, table_name: str, index_name: str, columns_sql: str) -> None:
+    if _index_exists(conn, table_name, index_name):
+        return
+    conn.execute(sql_text(f"CREATE INDEX {index_name} ON {table_name} ({columns_sql})"))
 
 # Database Models
 class BorrowerModel(Base):
     __tablename__ = "borrowers"
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    email = Column(String, index=True)  # Removed unique=True to allow multiple borrowers with same email
-    first_name = Column(String)
-    last_name = Column(String)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    email = Column(String(255), index=True)  # Removed unique=True to allow multiple borrowers with same email
+    first_name = Column(String(100))
+    last_name = Column(String(100))
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class LoanModel(Base):
     __tablename__ = "loans"
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    borrower_id = Column(String, index=True)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    borrower_id = Column(String(36), index=True)
     loan_amount = Column(Float)
     loan_date = Column(DateTime)
-    property_address = Column(String)
-    property_city = Column(String)
-    property_state = Column(String)
-    property_zip = Column(String)
-    line_of_business = Column(String, default="Commercial Banking")
-    product_type = Column(String, default="Term Loan")
-    loan_purpose = Column(String)
+    property_address = Column(String(255))
+    property_city = Column(String(100))
+    property_state = Column(String(2))
+    property_zip = Column(String(10))
+    line_of_business = Column(String(100), default="Commercial Banking")
+    product_type = Column(String(100), default="Term Loan")
+    loan_purpose = Column(String(100))
     interest_rate = Column(Float)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -73,11 +120,11 @@ class LoanModel(Base):
 class Form1071RequestModel(Base):
     __tablename__ = "form_1071_requests"
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    guid = Column(String, unique=True, index=True, default=lambda: str(uuid.uuid4()))
-    loan_id = Column(String, index=True)
-    borrower_id = Column(String, index=True)
-    status = Column(String, default="pending")  # pending, submitted
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    guid = Column(String(36), unique=True, index=True, default=lambda: str(uuid.uuid4()))
+    loan_id = Column(String(36), index=True)
+    borrower_id = Column(String(36), index=True)
+    status = Column(String(20), default="pending")  # pending, submitted
     request_sent_at = Column(DateTime, default=datetime.utcnow)
     submitted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -86,22 +133,22 @@ class Form1071RequestModel(Base):
 class Form1071SubmissionModel(Base):
     __tablename__ = "form_1071_submissions"
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    request_id = Column(String, index=True)
-    applicant_name = Column(String)
-    applicant_email = Column(String)
-    co_applicant_name = Column(String, nullable=True)
-    co_applicant_email = Column(String, nullable=True)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    request_id = Column(String(36), index=True)
+    applicant_name = Column(String(255))
+    applicant_email = Column(String(255))
+    co_applicant_name = Column(String(255), nullable=True)
+    co_applicant_email = Column(String(255), nullable=True)
     annual_income = Column(Integer, nullable=True)
     liquid_assets = Column(Integer, nullable=True)
-    employment_status = Column(String, nullable=True)
-    credit_score_range = Column(String, nullable=True)
-    military_status = Column(String, nullable=True)
-    veteran_status = Column(String, nullable=True)
-    demographic_race = Column(String, nullable=True)
-    demographic_ethnicity = Column(String, nullable=True)
-    demographic_sex = Column(String, nullable=True)
-    demographic_age_range = Column(String, nullable=True)
+    employment_status = Column(String(50), nullable=True)
+    credit_score_range = Column(String(50), nullable=True)
+    military_status = Column(String(50), nullable=True)
+    veteran_status = Column(String(50), nullable=True)
+    demographic_race = Column(String(50), nullable=True)
+    demographic_ethnicity = Column(String(100), nullable=True)
+    demographic_sex = Column(String(50), nullable=True)
+    demographic_age_range = Column(String(50), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -270,8 +317,7 @@ try:
     Base.metadata.create_all(bind=engine)
     with engine.begin() as conn:
         # Lightweight schema migration for new loan dimensions.
-        conn.execute(sql_text("ALTER TABLE loans ADD COLUMN IF NOT EXISTS line_of_business VARCHAR(100)"))
-        conn.execute(sql_text("ALTER TABLE loans ADD COLUMN IF NOT EXISTS product_type VARCHAR(100)"))
+        _ensure_loan_dimension_columns(conn)
 
         # Backfill all existing loan records with typical business dimensions.
         conn.execute(
@@ -302,10 +348,10 @@ try:
         )
 
         # Dashboard performance indexes for pagination and typeahead search.
-        conn.execute(sql_text("CREATE INDEX IF NOT EXISTS idx_borrowers_created_id ON borrowers(created_at DESC, id DESC)"))
-        conn.execute(sql_text("CREATE INDEX IF NOT EXISTS idx_borrowers_name ON borrowers(first_name, last_name)"))
-        conn.execute(sql_text("CREATE INDEX IF NOT EXISTS idx_loans_created ON loans(created_at DESC)"))
-        conn.execute(sql_text("CREATE INDEX IF NOT EXISTS idx_loans_amount ON loans(loan_amount)"))
+        _ensure_index(conn, "borrowers", "idx_borrowers_created_id", "created_at DESC, id DESC")
+        _ensure_index(conn, "borrowers", "idx_borrowers_name", "first_name, last_name")
+        _ensure_index(conn, "loans", "idx_loans_created", "created_at DESC")
+        _ensure_index(conn, "loans", "idx_loans_amount", "loan_amount")
 except Exception as e:
     print(f"Warning: Could not create tables at startup: {e}")
     print("Tables will be created on first request or when database is available")
@@ -602,44 +648,41 @@ def get_dashboard_response_trend(db: Session = Depends(get_db)):
 
     oldest_quarter_start = quarter_starts[0]
 
-    quarter_start_expr = func.date_trunc("quarter", Form1071RequestModel.request_sent_at)
-    avg_response_days_expr = (
-        func.extract("epoch", Form1071RequestModel.submitted_at - Form1071RequestModel.request_sent_at)
-        / 86400.0
-    )
-
-    rows = (
-        db.query(
-            quarter_start_expr.label("quarter_start"),
-            func.avg(avg_response_days_expr).label("average_response_days"),
-            func.count(Form1071RequestModel.id).label("submitted_count"),
-        )
+    # Keep aggregation database-agnostic so both SQL Server and PostgreSQL work.
+    submitted_rows = (
+        db.query(Form1071RequestModel.request_sent_at, Form1071RequestModel.submitted_at)
         .filter(
             Form1071RequestModel.request_sent_at >= oldest_quarter_start,
             Form1071RequestModel.status == "submitted",
             Form1071RequestModel.submitted_at.isnot(None),
         )
-        .group_by(quarter_start_expr)
-        .order_by(quarter_start_expr.asc())
         .all()
     )
 
-    rows_by_quarter = {
-        row.quarter_start.replace(tzinfo=None): row
-        for row in rows
-    }
+    quarter_buckets = {quarter_start: [] for quarter_start in quarter_starts}
+    for row in submitted_rows:
+        if row.request_sent_at is None or row.submitted_at is None:
+            continue
+
+        sent_at = row.request_sent_at.replace(tzinfo=None)
+        submitted_at = row.submitted_at.replace(tzinfo=None)
+        quarter_start = datetime(sent_at.year, ((sent_at.month - 1) // 3) * 3 + 1, 1)
+
+        if quarter_start not in quarter_buckets:
+            continue
+
+        response_days = (submitted_at - sent_at).total_seconds() / 86400.0
+        quarter_buckets[quarter_start].append(response_days)
 
     points = []
     for quarter_start in quarter_starts:
-        row = rows_by_quarter.get(quarter_start)
+        values = quarter_buckets.get(quarter_start, [])
         quarter_number = ((quarter_start.month - 1) // 3) + 1
         points.append(
             {
                 "quarter_label": f"Q{quarter_number} {quarter_start.year % 100:02d}",
-                "average_response_days": round(float(row.average_response_days), 1)
-                if row and row.average_response_days is not None
-                else None,
-                "submitted_count": int(row.submitted_count or 0) if row else 0,
+                "average_response_days": round(sum(values) / len(values), 1) if values else None,
+                "submitted_count": len(values),
             }
         )
 
